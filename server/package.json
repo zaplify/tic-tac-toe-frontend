@@ -6,13 +6,12 @@
   "license": "ISC",
   "main": "server/index.js",
   "scripts": {
-    "start": "nodemon server/index.js localhost 8080"
+    "start": "nodemon index.js"
   },
   "dependencies": {
-    "express": "4.16.4",
-    "socket.io": "2.1.1"
-  },
-  "devDependencies": {
-    "nodemon": "1.18.4"
+    "cors": "^2.8.5",
+    "express": "^4.18.1",
+    "nodemon": "^2.0.19",
+    "socket.io": "^4.5.1"
   }
 }
