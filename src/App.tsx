@@ -2,8 +2,6 @@ import React, { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import "./App.scss";
 
-const socket = io("https://http-nodejs-production-85eb.up.railway.app");
-
 const connectToChatServer = () => {
     const socket = io("https://http-nodejs-production-85eb.up.railway.app");
 
