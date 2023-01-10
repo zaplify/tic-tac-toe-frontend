@@ -1,98 +1,77 @@
+// Setup basic express server
 const express = require("express");
 const app = express();
-const PORT = 4000;
+const path = require("path");
+const server = require("http").createServer(app);
+const io = require("socket.io")(server);
+const port = process.env.PORT || 4000;
 
-const http = require("http").Server(app);
-const cors = require("cors");
-const socketIO = require("socket.io")(http, {
-  cors: {
-    origin: "http://localhost:3000",
-  },
+server.listen(port, () => {
+  console.log("Server listening at port %d", port);
 });
 
-const clients = {};
-const players = {};
-let unmatched = null;
+// Routing
+app.use(express.static(path.join(__dirname, "public")));
 
-const addClient = (socket) => {
-  clients[socket.id] = socket;
-};
-const removeClient = (socket) => {
-  delete clients[socket.id];
-};
-const getOpponent = (socket) => {
-  if (!players[socket.id].opponent) {
-    return;
-  }
+// Chatroom
 
-  return players[players[socket.id].opponent].socket;
-};
-const joinGame = (socket) => {
-  players[socket.id] = {
-    opponent: unmatched,
-    symbol: "X",
-    socket: socket,
-  };
+let numUsers = 0;
 
-  if (unmatched) {
-    players[socket.id].symbol = "O";
-    players[unmatched].opponent = socket.id;
-    unmatched = null;
-  } else {
-    unmatched = socket.id;
-  }
-};
+io.on("connection", (socket) => {
+  let addedUser = false;
 
-app.use(cors());
-
-app.get("/api", (req, res) => {
-  res.json({
-    message: "Hello world",
-  });
-});
-
-http.listen(PORT, () => {
-  console.log(`Server listening on ${PORT}`);
-});
-
-socketIO.on("connection", function (socket) {
-  console.log(`🚀 socketIO.on: ${socket.id} user just connected!`);
-  let id = socket.id;
-
-  addClient(socket);
-
-  joinGame(socket);
-
-  if (getOpponent(socket)) {
-    socket.emit("game_begin", {
-      symbol: players[socket.id].symbol,
+  // when the client emits 'new message', this listens and executes
+  socket.on("new message", (data) => {
+    // we tell the client to execute 'new message'
+    socket.broadcast.emit("new message", {
+      username: socket.username,
+      message: data,
     });
+  });
 
-    getOpponent(socket).emit("game_begin", {
-      symbol: players[getOpponent(socket).id].symbol,
+  // when the client emits 'add user', this listens and executes
+  socket.on("add user", (username) => {
+    if (addedUser) return;
+
+    // we store the username in the socket session for this client
+    socket.username = username;
+    ++numUsers;
+    addedUser = true;
+    socket.emit("login", {
+      numUsers: numUsers,
     });
-  }
-
-  socket.on("make_move", function (data) {
-    if (!getOpponent(socket)) {
-      return;
-    }
-
-    socket.emit("move_made", data);
-    getOpponent(socket).emit("move_made", data);
-
-    return true;
+    // echo globally (all clients) that a person has connected
+    socket.broadcast.emit("user joined", {
+      username: socket.username,
+      numUsers: numUsers,
+    });
   });
 
-  socket.on("disconnect", function () {
-    if (getOpponent(socket)) {
-      getOpponent(socket).emit("opponent_left");
-      removeClient(socket);
-    }
+  // when the client emits 'typing', we broadcast it to others
+  socket.on("typing", () => {
+    socket.broadcast.emit("typing", {
+      username: socket.username,
+    });
   });
 
-  socket.on("mouse_move", (data) => {
-    data.id = id;
-    socket.broadcast.emit("moving", data);
+  // when the client emits 'stop typing', we broadcast it to others
+  socket.on("stop typing", () => {
+    socket.broadcast.emit("stop typing", {
+      username: socket.username,
+    });
+  });
+
+  // when the user disconnects.. perform this
+  socket.on("disconnected", (userName) => {
+    console.log(`${userName} disconnected`);
+    if (addedUser) {
+      --numUsers;
+
+      // echo globally that this client has left
+      socket.broadcast.emit("user left", {
+        username: socket.username,
+        numUsers: numUsers,
+      });
+    }
   });
 });
