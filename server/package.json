@@ -1,17 +1,17 @@
 {
-  "name": "tic-tac-toe-server",
-  "version": "1.0.0",
-  "description": "",
-  "author": "Jakub",
-  "license": "ISC",
-  "main": "server/index.js",
-  "scripts": {
-    "start": "nodemon index.js"
-  },
+  "name": "socket.io-chat",
+  "version": "0.0.0",
+  "description": "A simple chat client using socket.io",
+  "main": "index.js",
+  "author": "Grant Timmerman",
+  "private": true,
+  "license": "BSD",
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^4.18.1",
-    "nodemon": "^2.0.19",
-    "socket.io": "^4.5.1"
+    "express": "~4.17.1",
+    "socket.io": "^4.0.0"
+  },
+  "scripts": {
+    "start": "node index.js"
   }
 }
